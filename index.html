@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amar Chauhan — BI Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1416;
+    --surface:#161D21;
+    --surface-2:#1D262B;
+    --line:#2A363C;
+    --text:#ECEFEC;
+    --text-dim:#8FA0A2;
+    --teal:#3FC1AE;
+    --teal-bright:#7FE9D8;
+    --manager:#A78BFA;
+    --teal-dim:rgba(63,193,174,0.14);
+    --amber:#E3A548;
+    --amber-dim:rgba(227,165,72,0.14);
+    --grey-tier:#3E4A50;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'IBM Plex Sans', Arial, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{ font-family:'Space Grotesk', Arial, sans-serif; letter-spacing:-0.01em; }
+  .mono{ font-family:'IBM Plex Mono', 'Courier New', monospace; }
+  a{color:inherit;}
+  .wrap{ max-width:1240px; margin:0 auto; padding:0 28px; }
+  @media (max-width:720px){ .wrap{padding:0 16px;} }
+
+  /* ---------- Header ---------- */
+  .topbar{ padding:36px 0 22px; border-bottom:1px solid var(--line); }
+  .topbar-inner{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px; }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--teal); margin:0 0 8px; display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{ content:""; width:18px;height:1px; background:var(--teal); display:inline-block; }
+  .name{ font-size:clamp(30px,4.4vw,42px); font-weight:700; margin:0 0 4px; line-height:1.04; }
+  .role-title{ font-size:15px; color:var(--text-dim); font-weight:500; margin:0; }
+  .contact-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pill{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; padding:7px 12px;
+    border:1px solid var(--line); border-radius:100px; color:var(--text-dim); text-decoration:none;
+    display:inline-flex; align-items:center; gap:6px;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .pill:hover{ border-color:var(--teal); color:var(--text); }
+
+  /* ---------- KPI strip ---------- */
+  .kpi-strip{ display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; padding:22px 0 0; }
+  @media (max-width:640px){ .kpi-strip{grid-template-columns:repeat(2,1fr);} }
+  .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; position:relative; }
+  .kpi-card.has-tooltip{ cursor:default; }
+  .kpi-card.has-tooltip .kpi-label{ text-decoration:underline dotted var(--line); text-underline-offset:3px; }
+  .kpi-tooltip{
+    position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%);
+    background:#1D262B; border:1px solid var(--line); border-radius:8px;
+    padding:10px 16px; z-index:30;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,0.45);
+    white-space:nowrap;
+  }
+  .kpi-card.has-tooltip:hover .kpi-tooltip{ opacity:1; visibility:visible; }
+  .kpi-tooltip ul{ list-style:none; margin:0; padding:0; }
+  .kpi-tooltip li{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--text-dim);
+    padding:3px 0;
+  }
+  .kpi-tooltip::after{
+    content:""; position:absolute; bottom:100%; left:50%; transform:translateX(-50%);
+    border:6px solid transparent; border-bottom-color:#1D262B;
+  }
+  .kpi-value{ font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; color:var(--teal); line-height:1; }
+  .kpi-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-dim); margin-top:6px; }
+
+  /* ---------- Slicer bar ---------- */
+  .slicer-bar{
+    position:sticky; top:0; z-index:20;
+    background:rgba(14,20,22,0.94);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+    padding:14px 0;
+  }
+  .slicer-inner{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .slicer-label{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--text-dim); margin-right:2px;
+  }
+  .chip{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; padding:7px 13px;
+    border-radius:100px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer;
+    transition:all .15s ease;
+  }
+  .chip:hover{ border-color:var(--teal); color:var(--text); }
+  .chip.active{ background:var(--teal-dim); border-color:var(--teal); color:var(--teal); }
+
+  /* ---------- Panels ---------- */
+  .panel{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px 22px; }
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .panel-title{ font-size:14px; font-weight:600; margin:0; }
+  .panel-sub{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; }
+
+  .legend-row{ display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-dim); }
+  .legend-dot{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  /* ---------- Gantt (pure HTML/CSS) ---------- */
+  .gantt{ position:relative; }
+  .gantt-row{
+    display:flex; align-items:center; gap:12px;
+    min-height:38px; padding:4px 0; margin-bottom:4px;
+  }
+  .gantt-label{
+    width:38%; flex-shrink:0;
+    display:flex; flex-direction:column; justify-content:center; gap:2px;
+    transition:color .15s ease;
+    overflow:hidden;
+  }
+  .gantt-label .role-name{
+    font-size:12px; font-weight:600; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .gantt-label .company-name{
+    font-size:10px; color:var(--text-dim);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .gantt-row.row-hover .gantt-label .company-name{ color:var(--teal); }
+  .gantt-track{ position:relative; flex:1; height:20px; }
+  .gantt-bar{
+    position:absolute; top:0; height:20px; border-radius:4px;
+    cursor:pointer;
+    transition:opacity .2s ease, filter .2s ease, box-shadow .2s ease;
+  }
+  .gantt-bar.dimmed{ opacity:.25; filter:saturate(0.2); }
+  .gantt-bar.row-hover{ box-shadow:0 0 0 2px var(--teal-bright); }
+  .gantt-axis{
+    display:flex; margin-top:6px; margin-left:38%; padding-left:12px;
+    position:relative; height:16px;
+  }
+  .gantt-axis span{
+    position:absolute; transform:translateX(-50%);
+    font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-dim);
+  }
+  .gantt-tooltip{
+    position:fixed; z-index:50; pointer-events:none;
+    background:#1D262B; border:1px solid var(--line); border-radius:6px;
+    padding:8px 11px; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color:var(--text); max-width:240px; opacity:0; transition:opacity .12s ease;
+    box-shadow:0 8px 20px rgba(0,0,0,0.4);
+  }
+  .gantt-tooltip.show{ opacity:1; }
+  .gantt-tooltip .tt-title{ color:var(--teal-bright); font-weight:600; margin-bottom:3px; }
+
+  /* ---------- Experience matrix table ---------- */
+  .matrix-panel{ padding-bottom:8px; }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table.matrix{ width:100%; table-layout:fixed; border-collapse:collapse; }
+  table.matrix thead th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--text-dim); font-weight:500; padding:0 12px 10px; border-bottom:1px solid var(--line);
+  }
+  tr.role-row{ cursor:pointer; transition:background .15s ease, opacity .2s ease, filter .2s ease; }
+  tr.role-row:hover{ background:var(--surface-2); }
+  tr.role-row.dimmed{ opacity:.3; filter:saturate(0.3); }
+  tr.role-row td{ padding:14px 12px; border-bottom:1px solid var(--line); font-size:13.5px; vertical-align:top; overflow-wrap:break-word; }
+  td.company-cell{ font-weight:600; }
+  td.company-cell .sub{ display:block; font-weight:400; color:var(--text-dim); font-size:11.5px; margin-top:2px; }
+  td.period-cell{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-dim); }
+  td.dur-cell{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-dim); }
+  .tier-dot{ width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:8px; }
+  .tag-mini{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:3px 8px; border-radius:100px;
+    background:var(--surface-2); color:var(--text-dim); display:inline-block; margin:2px 4px 2px 0;
+  }
+  .tag-mini.match{ background:var(--teal-dim); color:var(--teal); }
+  .caret{ display:inline-block; transition:transform .2s ease; color:var(--text-dim); font-size:14px; }
+  tr.role-row.open .caret{ transform:rotate(90deg); color:var(--teal); }
+
+  tr.detail-row td{ padding:0; border-bottom:1px solid var(--line); }
+  .detail-inner{ max-height:0; overflow:hidden; transition:max-height .3s ease; }
+  tr.detail-row.open .detail-inner{ max-height:600px; }
+  .detail-content{ padding:4px 12px 18px 34px; }
+  .detail-content ul{ margin:6px 0; padding-left:18px; color:var(--text-dim); font-size:13px; }
+  .detail-content li{ margin-bottom:6px; }
+  .achieve-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--amber); margin:10px 0 6px; }
+
+  /* Mobile: collapse the table into stacked cards, no horizontal scrolling needed */
+  @media (max-width:760px){
+    .matrix-panel{ padding-left:16px; padding-right:16px; }
+    table.matrix{ table-layout:auto; }
+    table.matrix thead{ display:none; }
+    table.matrix, table.matrix tbody{ display:block; width:100%; }
+    tr.role-row{ display:block; width:100%; border-bottom:1px solid var(--line); padding:14px 0; }
+    tr.role-row td{ display:block; width:100% !important; padding:2px 0; border-bottom:none; font-size:13px; }
+    tr.role-row td.company-cell{ margin-bottom:6px; }
+    tr.role-row td.period-cell::before{ content:"Period · "; }
+    tr.role-row td.dur-cell::before{ content:"Duration · "; margin-top:2px; }
+    tr.role-row td:last-child{ margin-top:8px; }
+    tr.detail-row{ display:block; width:100%; }
+    tr.detail-row td{ display:block; width:100%; padding:0; border-bottom:1px solid var(--line); }
+    .detail-content{ padding:4px 4px 18px 20px; }
+  }
+
+  /* ---------- Skills / Education footer ---------- */
+  .section{ padding:36px 0; }
+  .section-head{ margin-bottom:18px; }
+  .section-head h2{ font-size:20px; margin:0; font-weight:600; }
+  .skills-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+  @media (max-width:860px){ .skills-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:520px){ .skills-grid{grid-template-columns:1fr;} }
+  .skill-cat h4{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--teal); margin:0 0 10px; }
+  .skill-cat ul{ list-style:none; margin:0; padding:0; }
+  .skill-cat li{ font-size:13.5px; color:var(--text-dim); padding:5px 0; border-bottom:1px solid var(--line); }
+
+  .edu-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:720px){ .edu-grid{grid-template-columns:1fr;} }
+  .edu-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; }
+  .edu-card h3{ font-size:14.5px; margin:0 0 8px; }
+  .edu-card .line{ font-size:12.5px; color:var(--text-dim); display:flex; justify-content:space-between; gap:10px; padding:5px 0; }
+  .edu-card .line span:last-child{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; }
+
+  .hobby-row{ display:flex; flex-wrap:wrap; gap:9px; }
+  .hobby-pill{
+    font-family:'IBM Plex Mono', monospace; font-size:12px;
+    padding:8px 14px; border-radius:100px;
+    border:1px solid var(--line); background:var(--surface);
+    color:var(--text-dim);
+  }
+  a.hobby-pill{
+    text-decoration:none; color:var(--teal); border-color:var(--teal);
+    background:var(--teal-dim);
+    transition:transform .15s ease, color .15s ease;
+  }
+  a.hobby-pill:hover{ transform:translateY(-2px); color:var(--teal-bright); }
+
+  footer{ border-top:1px solid var(--line); padding:36px 0 48px; }
+  .cta-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+  .cta-row h2{ margin:0; font-size:20px; }
+  .btn{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; padding:11px 20px; border-radius:100px;
+    background:var(--teal); color:var(--ink); text-decoration:none; font-weight:600;
+    display:inline-flex; align-items:center; gap:8px; transition:transform .15s ease;
+  }
+  .btn:hover{ transform:translateY(-2px); }
+  .footer-note{ margin-top:20px; color:var(--text-dim); font-size:12px; }
+
+  :focus-visible{ outline:2px solid var(--teal); outline-offset:3px; }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="topbar-inner">
+      <div>
+        <p class="eyebrow">Career Dashboard</p>
+        <h1 class="name">Amar Chauhan</h1>
+        <p class="role-title">Power BI &amp; Data Strategy · Preston, UK</p>
+      </div>
+    </div>
+    <div class="kpi-strip">
+      <div class="kpi-card"><div class="kpi-value">15+</div><div class="kpi-label">Years in BI</div></div>
+      <div class="kpi-card has-tooltip">
+        <div class="kpi-value">6</div><div class="kpi-label">Industry Backgrounds</div>
+        <div class="kpi-tooltip">
+          <ul>
+            <li>Outsourcing</li>
+            <li>Energy</li>
+            <li>Debt Collection</li>
+            <li>Accounting</li>
+            <li>Card Payment Solutions</li>
+            <li>Pensions</li>
+          </ul>
+        </div>
+      </div>
+      <div class="kpi-card"><div class="kpi-value">5</div><div class="kpi-label">Employers</div></div>
+      <div class="kpi-card"><div class="kpi-value">5</div><div class="kpi-label">Technical roles</div></div>
+      <div class="kpi-card"><div class="kpi-value">2</div><div class="kpi-label">Managerial roles</div></div>
+      <div class="kpi-card"><div class="kpi-value">20</div><div class="kpi-label">Skills in toolkit</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="slicer-bar">
+  <div class="wrap slicer-inner">
+    <span class="slicer-label">Filter by skill</span>
+    <button class="chip active" data-skill="all">All</button>
+    <button class="chip" data-skill="Power BI">Power BI</button>
+    <button class="chip" data-skill="SQL">SQL</button>
+    <button class="chip" data-skill="Tableau">Tableau</button>
+    <button class="chip" data-skill="Alteryx">Alteryx</button>
+    <button class="chip" data-skill="ETL">ETL / Data Warehouse</button>
+    <button class="chip" data-skill="Automation">Automation</button>
+    <button class="chip" data-skill="Leadership">Leadership</button>
+    <button class="chip" data-skill="Power Apps">Power Apps</button>
+    <button class="chip" data-skill="Dataflows">Dataflows</button>
+    <button class="chip" data-skill="SSRS">SSRS</button>
+    <button class="chip" data-skill="Excel">Excel</button>
+    <button class="chip" data-skill="Power Query">Power Query</button>
+    <button class="chip" data-skill="DAX">DAX</button>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <div class="panel" style="margin:28px 0 20px;">
+    <div class="panel-head">
+      <h2 class="panel-title">Career timeline</h2>
+      <span class="panel-sub">2005 — Present</span>
+    </div>
+    <div class="gantt" id="gantt"></div>
+    <div class="legend-row">
+      <span class="legend-item"><span class="legend-dot" style="background:var(--grey-tier)"></span>Early career</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--teal)"></span>Analyst</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Senior / Supervisor</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--manager)"></span>Manager</span>
+    </div>
+  </div>
+
+  <div class="panel matrix-panel" style="margin-bottom:36px;">
+    <div class="panel-head">
+      <h2 class="panel-title">Experience matrix</h2>
+      <span class="panel-sub">Click a row for detail</span>
+    </div>
+    <div class="table-scroll">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width:26%">Company / role</th>
+            <th style="width:16%">Period</th>
+            <th style="width:10%">Duration</th>
+            <th>Skills applied</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <section class="section" id="skills">
+    <div class="section-head"><h2>Technical toolkit</h2></div>
+    <div class="skills-grid">
+      <div class="skill-cat">
+        <h4>Database &amp; ETL</h4>
+        <ul><li>SQL (Advanced)</li><li>SSIS</li><li>Data Warehouse design</li><li>Microsoft Fabric</li><li>Pipelines &amp; Dataflows</li><li>Power Query</li></ul>
+      </div>
+      <div class="skill-cat">
+        <h4>Visualisation</h4>
+        <ul><li>Power BI</li><li>Tableau</li><li>Alteryx</li><li>SSRS</li><li>Excel</li><li>Power Apps</li></ul>
+      </div>
+      <div class="skill-cat">
+        <h4>Languages</h4>
+        <ul><li>DAX (Advanced)</li><li>SQL (Advanced)</li><li>Python (Basic)</li></ul>
+      </div>
+      <div class="skill-cat">
+        <h4>Practice</h4>
+        <ul><li>Self-serve reporting</li><li>Automation &amp; testing</li><li>Data modelling</li><li>Large datasets</li><li>O365 &amp; SharePoint</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="education">
+    <div class="section-head"><h2>Education</h2></div>
+    <div class="edu-grid">
+      <div class="edu-card">
+        <h3>Runshaw College, Leyland</h3>
+        <div class="line"><span>BTEC National Diploma, Business Studies (BBB)</span><span>2004 – 2006</span></div>
+        <div class="line"><span>AS Level, Business Studies &amp; ICT</span><span>2003 – 2004</span></div>
+      </div>
+      <div class="edu-card">
+        <h3>Priory Technology College, Preston</h3>
+        <div class="line"><span>12 GCSEs</span><span>1998 – 2003</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="hobbies">
+    <div class="section-head"><h2>Hobbies &amp; interests</h2></div>
+    <div class="hobby-row">
+      <a class="hobby-pill" href="https://tdko.app" target="_blank" rel="noopener noreferrer">Creator of tdko.app ↗</a>
+      <span class="hobby-pill">Craft Beer Geek</span>
+      <span class="hobby-pill">Podcast Host</span>
+      <span class="hobby-pill">Coffee Nerd</span>
+      <span class="hobby-pill">Dough Science</span>
+      <span class="hobby-pill">Football Fan</span>
+      <span class="hobby-pill">Boxing Fan</span>
+      <span class="hobby-pill">Hip-Hop Head</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cta-row">
+      <h2>Let's talk about your reporting</h2>
+      <a class="btn" href="mailto:Amarhauhan87@googlemail.com">Get in touch ↗</a>
+    </div>
+
+  </div>
+</footer>
+
+<div class="gantt-tooltip" id="ganttTooltip"></div>
+
+<script>
+/* ---------------- Data ---------------- */
+// month index 0 = Jan 2005
+var roles = [
+  { idx:3, company:"NCO Europe Group", title:"Account Representative", tier:"early", tags:[],
+    start:42, end:59, achievements:[] },
+  { idx:4, company:"NCO Europe Group", title:"Client Service Officer", tier:"early", tags:["Excel"],
+    start:60, end:82, achievements:[] },
+  { idx:5, company:"NCO Europe Group", title:"MI Analyst", tier:"analyst", tags:["SQL","SSRS","Excel"],
+    start:82, end:113,
+    summary:"KPI and profitability reporting on high-profile debt portfolios.",
+    achievements:[
+      "Produced KPI and profitability reporting on UK debt management and debt-purchasing portfolios.",
+      "Worked with large daily datasets to trend performance and inform strategic advice.",
+      "Built and maintained the client and internal reporting suite, including ISO governance diagnostics."
+    ]},
+  { idx:6, company:"NCO Europe Group", title:"MI Quality & Supervisor", tier:"senior", tags:["Leadership","SQL","Quality","SSRS","Excel"],
+    start:113, end:124,
+    summary:"First people-management role — supervised a team of 5.",
+    achievements:[
+      "Supervised a team of 5 analysts, introducing new practices and development plans.",
+      "Built and maintained the service delivery request procedure and monitored performance against it.",
+      "Deputised for senior management; ran performance plans, leave approval and work scheduling.",
+      "Trained the team on SQL and Excel through after-work sessions."
+    ]},
+  { idx:7, company:"People2.0", title:"Business Intelligence Analyst", tier:"analyst", tags:["Tableau","Alteryx","SQL","SSRS","Excel","ETL"],
+    start:125, end:141,
+    summary:"Complex SQL modelling feeding Tableau and Alteryx.",
+    achievements:[
+      "Delivered MI across Customer Services, Legal, Marketing, Accounts and New Business.",
+      "Built complex SQL scripts — nested case statements, aggregate/scalar functions, temporary tables for historical data.",
+      "Produced reports with multi-value parameters, drilldowns and sub-reports; embedded stored procedures in Excel."
+    ]},
+  { idx:8, company:"takepayments", title:"Senior Business Intelligence Analyst", tier:"senior", tags:["SQL","ETL","Automation","SSRS","Excel"],
+    start:142, end:174,
+    summary:"Automated daily KPI reporting across four business areas.",
+    achievements:[
+      "Contributed to data warehouse design and delivered it through to implementation.",
+      "Designed ETL processes for a SQL-based data warehouse and wrote complex queries to improve data quality.",
+      "Automated daily KPI reporting for Finance, Sales, Commercial and Boarding."
+    ],
+    extra:[
+      "Built dynamic P&amp;L and cost-centre reports for all key stakeholders.",
+      "Delivered sales-funnel reporting sliceable by department, lead type and sector.",
+      "Redesigned the commission model for telemarketing agents; enrolled in the company's Platinum Club."
+    ]},
+  { idx:9, company:"Caroola Group", title:"Business Intelligence Analyst", tier:"analyst", tags:["SQL","ETL","SSRS","Excel"],
+    start:174, end:214,
+    summary:"Built a tactical data warehouse for the end-to-end client journey.",
+    achievements:[
+      "Translated requirements from Marketing, Sales, Onboarding, Finance and Operations into coherent BI reports.",
+      "Developed a tactical data warehouse joining these areas to support end-to-end client journey reporting.",
+      "Analysed existing reporting processes and fixed operational data-quality issues at the source."
+    ],
+    extra:[
+      "\"We Are One Team\" award for standout work on Capacity Listings.",
+      "Nominated twice more for consistently supporting the Freeagent project and the wider management team."
+    ]},
+  { idx:10, company:"Capita Pension Solutions", title:"Senior Business Intelligence Analyst", tier:"senior", tags:["Power Apps","Power BI","Automation","SQL","Dataflows","SSRS","Excel","Power Query","DAX"],
+    start:214, end:241,
+    summary:"Migrated Consulting reporting from Tableau to Power BI.",
+    achievements:[
+      "Delivered MI for multiple operational functions and the Consulting business.",
+      "Automated computer-based training reporting for 9 functions, cutting manual processing time by 90% and lifting average compliance from ~80% to ~99%.",
+      "Built advanced Power BI dashboards, trend analysis and monthly performance reviews.",
+      "Deputised for the BI Manager and mentored team members on MI practice."
+    ],
+    extra:[
+      "Employee of the Month — redesigned computer-based training reporting across 9 functions.",
+      "Employee of the Month — migrated Consulting reporting from Tableau to Power BI, including self-serve scorecards.",
+      "Built a ticket-based workstream that reorganised how requests and changes reach the team."
+    ]},
+  { idx:11, company:"Capita Pension Solutions", title:"MI Manager", tier:"manager", tags:["Fabric","Strategy","Way of Working","Leadership","Mentoring","Power Apps","Power BI","Dataflows","SSRS","Excel","Power Query","DAX"],
+    start:241, end:259,
+    summary:"Leading 20 analysts across three pillars.",
+    achievements:[
+      "Led and developed a team of 20 BI analysts across three pillars, setting delivery standards and capability growth.",
+      "Oversaw 300+ interactive, self-serve Power BI reports spanning Operations, Payroll, Finance, Events, Governance and Consulting.",
+      "Embedded data storytelling and accuracy into monthly performance packs and management reviews.",
+      "Introduced version control and clearer frameworks across BAU, tickets, projects and client reporting.",
+      "Ran daily stand-ups and agile sprints to keep delivery and stakeholder communication on track."
+    ]}
+];
+
+var tierColor = { early:"#3E4A50", analyst:"#3FC1AE", senior:"#E3A548", manager:"#A78BFA" };
+var MAX_MONTHS = 262; // Jan 2005 -> ~Oct 2026
+
+function monthLabel(idx){
+  var year = 2005 + Math.floor(idx/12);
+  var month = idx % 12;
+  var names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return names[month] + " " + year;
+}
+function monthLabelYY(idx){
+  var year = 2005 + Math.floor(idx/12);
+  var month = idx % 12;
+  var names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return names[month] + " '" + String(year).slice(-2);
+}
+function durLabel(months){
+  var y = Math.floor(months/12), m = months % 12;
+  if(y===0) return m + "mo";
+  if(m===0) return y + "yr";
+  return y + "yr " + m + "mo";
+}
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ---------------- Build Gantt (pure HTML/CSS) ---------------- */
+var ganttEl = document.getElementById('gantt');
+var tooltip = document.getElementById('ganttTooltip');
+
+roles.forEach(function(r){
+  var row = document.createElement('div');
+  row.className = 'gantt-row';
+  row.dataset.idx = r.idx;
+
+  var label = document.createElement('div');
+  label.className = 'gantt-label';
+
+  var roleName = document.createElement('div');
+  roleName.className = 'role-name';
+  roleName.textContent = r.title;
+
+  var companyName = document.createElement('div');
+  companyName.className = 'company-name';
+  companyName.textContent = '(' + r.company + ')';
+
+  label.appendChild(roleName);
+  label.appendChild(companyName);
+  row.appendChild(label);
+
+  var track = document.createElement('div');
+  track.className = 'gantt-track';
+
+  var bar = document.createElement('div');
+  bar.className = 'gantt-bar';
+  bar.dataset.idx = r.idx;
+  bar.style.left = (r.start / MAX_MONTHS * 100) + '%';
+  bar.style.width = Math.max((r.end - r.start) / MAX_MONTHS * 100, 1) + '%';
+  bar.style.background = tierColor[r.tier];
+
+  bar.addEventListener('mouseenter', function(e){
+    setRowHover(r.idx, true);
+    tooltip.innerHTML = '<div class="tt-title">' + esc(r.title) + '</div>' +
+      esc(r.company) + '<br>' +
+      monthLabelYY(r.start) + ' – ' + (r.current ? 'Present' : monthLabelYY(r.end)) +
+      ' &middot; ' + durLabel(r.end - r.start);
+    tooltip.classList.add('show');
+    positionTooltip(e);
+  });
+  bar.addEventListener('mousemove', positionTooltip);
+  bar.addEventListener('mouseleave', function(){
+    setRowHover(r.idx, false);
+    tooltip.classList.remove('show');
+  });
+  bar.addEventListener('click', function(){
+    var tr = document.querySelector('tr.role-row[data-idx="'+r.idx+'"]');
+    if(tr){ tr.scrollIntoView({behavior:'smooth', block:'center'}); openRow(tr); }
+  });
+
+  track.appendChild(bar);
+  row.appendChild(track);
+  ganttEl.appendChild(row);
+});
+
+function positionTooltip(e){
+  var x = e.clientX, y = e.clientY;
+  var pad = 16;
+  tooltip.style.left = Math.min(x + pad, window.innerWidth - 260) + 'px';
+  tooltip.style.top = (y - 46) + 'px';
+}
+
+/* axis */
+var axis = document.createElement('div');
+axis.className = 'gantt-axis';
+for(var v = 0; v <= MAX_MONTHS; v += 24){
+  var tick = document.createElement('span');
+  tick.style.left = (v / MAX_MONTHS * 100) + '%';
+  tick.textContent = "'" + String(2005 + Math.round(v/12)).slice(-2);
+  axis.appendChild(tick);
+}
+ganttEl.appendChild(axis);
+
+function setRowHover(idx, on){
+  var row = document.querySelector('.gantt-row[data-idx="'+idx+'"]');
+  var bar = document.querySelector('.gantt-bar[data-idx="'+idx+'"]');
+  var tr = document.querySelector('tr.role-row[data-idx="'+idx+'"]');
+  if(row) row.classList.toggle('row-hover', on);
+  if(bar) bar.classList.toggle('row-hover', on);
+  if(tr) tr.classList.toggle('row-hover-table', on);
+}
+
+/* ---------------- Experience matrix table ---------------- */
+var tbody = document.getElementById('matrixBody');
+roles.slice().reverse().forEach(function(r){
+  var tr = document.createElement('tr');
+  tr.className = 'role-row';
+  tr.dataset.idx = r.idx;
+  tr.dataset.tags = r.tags.join(',');
+
+  var tagsHtml = r.tags.length
+    ? r.tags.map(function(t){ return '<span class="tag-mini" data-tag="'+esc(t)+'">'+(t === 'ETL' ? 'ETL / Data Warehouse' : esc(t))+'</span>'; }).join('')
+    : '<span class="tag-mini">General operations</span>';
+
+  tr.innerHTML =
+    '<td class="company-cell">' +
+      '<span class="caret">&rsaquo;</span>' +
+      '<span class="tier-dot" style="background:'+tierColor[r.tier]+'"></span>' + esc(r.company) +
+      '<span class="sub">' + esc(r.title) + '</span>' +
+    '</td>' +
+    '<td class="period-cell">' + monthLabel(r.start) + ' – ' + (r.current ? 'Present' : monthLabel(r.end)) + '</td>' +
+    '<td class="dur-cell">' + durLabel(r.end - r.start) + '</td>' +
+    '<td>' + tagsHtml + '</td>';
+
+  var detailTr = document.createElement('tr');
+  detailTr.className = 'detail-row';
+  detailTr.dataset.idx = r.idx;
+  var allAch = (r.achievements || []);
+  var extra = r.extra || [];
+  detailTr.innerHTML =
+    '<td colspan="4"><div class="detail-inner"><div class="detail-content">' +
+      (r.summary ? '<div style="color:var(--text-dim); font-size:13px; margin-bottom:6px;">' + esc(r.summary) + '</div>' : '') +
+      (allAch.length ? '<ul>' + allAch.map(function(a){ return '<li>'+a+'</li>'; }).join('') + '</ul>' : '<div style="color:var(--text-dim); font-size:13px;">Pre-BI career role.</div>') +
+      (extra.length ? '<div class="achieve-label">Key achievements</div><ul>' + extra.map(function(a){ return '<li>'+a+'</li>'; }).join('') + '</ul>' : '') +
+    '</div></div></td>';
+
+  tr.addEventListener('click', function(){ openRow(tr); });
+  tr.addEventListener('mouseenter', function(){ setRowHover(r.idx, true); });
+  tr.addEventListener('mouseleave', function(){ setRowHover(r.idx, false); });
+
+  tbody.appendChild(tr);
+  tbody.appendChild(detailTr);
+});
+
+function openRow(tr){
+  var idx = tr.dataset.idx;
+  var detail = document.querySelector('tr.detail-row[data-idx="'+idx+'"]');
+  var isOpen = tr.classList.contains('open');
+  tr.classList.toggle('open', !isOpen);
+  if(detail) detail.classList.toggle('open', !isOpen);
+}
+
+/* row-hover-table style hook (added via JS class, styled below through inline fallback) */
+var styleTag = document.createElement('style');
+styleTag.textContent = '.role-row.row-hover-table{ background:var(--surface-2); }';
+document.head.appendChild(styleTag);
+
+/* ---------------- Skill slicer ---------------- */
+var chips = document.querySelectorAll('.chip');
+chips.forEach(function(chip){
+  chip.addEventListener('click', function(){
+    chips.forEach(function(c){ c.classList.remove('active'); });
+    chip.classList.add('active');
+    var skill = chip.dataset.skill;
+
+    roles.forEach(function(r){
+      var matches = skill === 'all' || r.tags.indexOf(skill) !== -1;
+
+      var bar = document.querySelector('.gantt-bar[data-idx="'+r.idx+'"]');
+      if(bar) bar.classList.toggle('dimmed', !matches);
+
+      var tr = document.querySelector('tr.role-row[data-idx="'+r.idx+'"]');
+      if(tr){
+        tr.classList.toggle('dimmed', !matches);
+        tr.querySelectorAll('.tag-mini').forEach(function(t){
+          t.classList.toggle('match', skill !== 'all' && t.dataset.tag === skill);
+        });
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>
